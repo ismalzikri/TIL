@@ -69,8 +69,30 @@ func connect() (*sql.DB, error) {
 
 // }
 
-func sqlQueryRow() {
-	var db, err = connect()
+// func sqlQueryRow() {
+// 	var db, err = connect()
+
+// 	if err != nil {
+// 		fmt.Println(err.Error())
+// 		return
+// 	}
+// 	defer db.Close()
+
+// 	var result = employee{}
+// 	var id = "1"
+// 	err = db.QueryRow("select name, experience from employees where id =$1", id).
+// 		Scan(&result.name, &result.experience)
+
+// 	if err != nil {
+// 		fmt.Println(err.Error())
+// 		return
+// 	}
+
+// 	fmt.Printf("name: %s\nexperience: %d\n", result.name, result.experience)
+// }
+
+func sqlPrepare() {
+	db, err := connect()
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -78,19 +100,26 @@ func sqlQueryRow() {
 	}
 	defer db.Close()
 
-	var result = employee{}
-	var id = "1"
-	err = db.QueryRow("select name, experience from employees where id =$1", id).
-		Scan(&result.name, &result.experience)
-
+	stmt, err := db.Prepare("select name, experience from employees where id=$1")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	fmt.Printf("name: %s\nexperience: %d\n", result.name, result.experience)
+	var result1 = employee{}
+	stmt.QueryRow("1").Scan(&result1.name, &result1.experience)
+	fmt.Printf("name: %s\nexperience: %d\n", result1.name, result1.experience)
+
+	var result2 = employee{}
+	stmt.QueryRow("2").Scan(&result2.name, &result2.experience)
+	fmt.Printf("name: %s\nexperience: %d\n", result2.name, result2.experience)
+
+	var result3 = employee{}
+	stmt.QueryRow("3").Scan(&result3.name, &result3.experience)
+	fmt.Printf("name: %s\nexperience: %d\n", result3.name, result3.experience)
+
 }
 
 func main() {
-	sqlQueryRow()
+	sqlPrepare()
 }
