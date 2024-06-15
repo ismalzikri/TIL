@@ -32,3 +32,9 @@ func TestCalculateCircular(t *testing.T) {
 		t.Errorf("WRONG! should be %.2f", circularShouldbe)
 	}
 }
+
+func BenchmarkCalculateWide(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		cube.Wide()
+	}
+}
