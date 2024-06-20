@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multilple Upload</title>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("user-form");
+        const uploadInput = document.getElementById("upload-file");
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const files = uploadInput.files;
+          if (files.length === 0) {
+            alert("Please select at least one file.");
+            return;
+          }
+
+          const formData = new FormData();
+          for (let i = 0; i < files.length; i++) {
+            formData.append("files[]", files[i]);
+          }
+
+          try {
+            const response = await fetch("/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              alert("Files uploaded successfully!");
+              form.reset();
+            } else {
+              alert("Failed to upload files.");
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred while uploading the files.");
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <form id="user-form" method="post" action="/upload">
+      <input required multiple id="upload-file" type="file" />
+      <br />
+      <button id="btn-upload" type="submit">Upload!</button>
+    </form>
+  </body>
+</html>
