@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download Document</title>
+  </head>
+  <body>
+    <ul id="list-files"></ul>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("/list-files")
+          .then((response) => response.json())
+          .then((data) => {
+            const listFiles = document.getElementById("list-files");
+            data.forEach((file) => {
+              const listItem = document.createElement("li");
+              const link = document.createElement("a");
+              link.href = "/download?path=" + encodeURI(file.path);
+              link.textContent = file.filename;
+              listItem.appendChild(link);
+              listFiles.appendChild(listItem);
+            });
+          })
+          .catch((error) => console.error("Error fetching file list:", error));
+      });
+    </script>
+  </body>
+</html>
