@@ -1,0 +1,72 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+li {
+  background: dodgerblue;
+  color: white;
+  padding: 10px;
+  list-style-type: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  view-transition-class: item;
+}
+
+button {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+  transition: all 200ms;
+  font-weight: bold;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes slide-out {
+  to {
+    translate: 100% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    translate: 100% 0;
+    opacity: 0;
+  }
+}
+
+::view-transition-group(.item) {
+  animation-duration: 400ms;
+}
+
+::view-transition-new(.item):only-child {
+  animation-name: slide-in;
+}
+
+::view-transition-old(.item):only-child {
+  animation-name: slide-out;
+}
