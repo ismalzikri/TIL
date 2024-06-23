@@ -2,16 +2,21 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 import "./App.css";
 
+type Item = {
+  id: number;
+  name: string;
+};
+
 function App() {
-  const [items, setItems] = useState(() => {
-    let items = [];
-    for (let i = 0; i < 30; i++) {
-      items.push({ id: i, name: "Item " + i });
+  const [items, setItems] = useState<Item[]>(() => {
+    const initialItems: Item[] = [];
+    for (let i = 1; i <= 30; i++) {
+      initialItems.push({ id: i, name: "Item " + i });
     }
-    return items;
+    return initialItems;
   });
 
-  let add = () => {
+  const add = () => {
     document.startViewTransition(() => {
       flushSync(() => {
         setItems((items) => [{ id: Date.now(), name: "New item" }, ...items]);
@@ -19,10 +24,13 @@ function App() {
     });
   };
 
-  let remove = (i) => {
+  const remove = (index: number) => {
     document.startViewTransition(() => {
       flushSync(() => {
-        setItems((items) => [...items.slice(0, i), ...items.slice(i + 1)]);
+        setItems((items) => [
+          ...items.slice(0, index),
+          ...items.slice(index + 1),
+        ]);
       });
     });
   };
