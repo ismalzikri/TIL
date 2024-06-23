@@ -20,7 +20,7 @@ ul {
 }
 
 li {
-  background: dodgerblue;
+  background: rgb(46, 221, 145);
   color: white;
   padding: 10px;
   list-style-type: none;
