@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #252424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,7 +20,7 @@ ul {
 }
 
 li {
-  background: rgb(46, 221, 145);
+  background: #3ABEF9;
   color: white;
   padding: 10px;
   list-style-type: none;
