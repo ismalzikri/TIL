@@ -28,7 +28,7 @@ li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  view-transition-class: item;
+  view-transition-name: item;
 }
 
 button {
