@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSRF test</title>
+  </head>
+  <body>
+    <form id="myForm">
+      <label>
+        Name
+        <input type="text" name="name" placeholder="Type your name here" />
+      </label>
+      <label>
+        Gender
+        <select name="gender">
+          <option value="" disabled>Select one</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
+      <input type="hidden" name="csrf" id="csrf" value="{{ .csrf }}" />
+      <button type="submit">Submit</button>
+    </form>
+
+    <script>
+      document
+        .getElementById("myForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const formData = new FormData(event.target);
+          const data = {
+            name: formData.get("name"),
+            gender: formData.get("gender"),
+          };
+
+          const csrfToken = document.getElementById("csrf").value;
+
+          fetch("/sayhello", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken, // Include the CSRF token in the headers
+            },
+            body: JSON.stringify(data),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Success:", data);
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        });
+    </script>
+  </body>
+</html>
