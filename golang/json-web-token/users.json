@@ -1,0 +1,14 @@
+[
+  {
+    "username": "ismal",
+    "password": "admin",
+    "email": "ismal@gmail.com",
+    "group": "admin"
+  },
+  {
+    "username": "zikri",
+    "password": "admin",
+    "email": "zikri@gmail.com",
+    "group": "publisher"
+  }
+]
