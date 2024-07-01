@@ -16,11 +16,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const dbConnString = "user=ismaldts dbname=employee sslmode=disable"
-const dbMaxIdleConns = 4
-const dbMaxConns = 100
-const totalWorker = 100
-const csvFile = "majestic_million.csv"
+const (
+	dbConnString   = "user=ismaldts dbname=employee sslmode=disable"
+	dbMaxIdleConns = 10
+	dbMaxConns     = 50
+	totalWorker    = 10
+	csvFile        = "majestic_million.csv"
+	batchSize      = 1000
+)
 
 var dataHeaders = make([]string, 0)
 
@@ -50,9 +53,9 @@ func openCsvFile() (*csv.Reader, *os.File, error) {
 	return reader, f, nil
 }
 
-func dispatchWorkers(db *sql.DB, jobs <-chan []interface{}, wg *sync.WaitGroup) {
-	for workerIndex := 0; workerIndex <= totalWorker; workerIndex++ {
-		go func(workerIndex int, db *sql.DB, jobs <-chan []interface{}, wg *sync.WaitGroup) {
+func dispatchWorkers(db *sql.DB, jobs <-chan [][]interface{}, wg *sync.WaitGroup) {
+	for workerIndex := 0; workerIndex < totalWorker; workerIndex++ {
+		go func(workerIndex int, db *sql.DB, jobs <-chan [][]interface{}, wg *sync.WaitGroup) {
 			counter := 0
 
 			for job := range jobs {
@@ -64,7 +67,9 @@ func dispatchWorkers(db *sql.DB, jobs <-chan []interface{}, wg *sync.WaitGroup) 
 	}
 }
 
-func readCsvFilePerLineThenSendToWorker(csvReader *csv.Reader, jobs chan<- []interface{}, wg *sync.WaitGroup) {
+func readCsvFilePerLineThenSendToWorker(csvReader *csv.Reader, jobs chan<- [][]interface{}, wg *sync.WaitGroup) {
+	batch := make([][]interface{}, 0, batchSize)
+
 	for {
 		row, err := csvReader.Read()
 		if err != nil {
@@ -79,18 +84,28 @@ func readCsvFilePerLineThenSendToWorker(csvReader *csv.Reader, jobs chan<- []int
 			continue
 		}
 
-		rowOrdered := make([]interface{}, 0)
-		for _, each := range row {
-			rowOrdered = append(rowOrdered, each)
+		rowOrdered := make([]interface{}, len(row))
+		for i, each := range row {
+			rowOrdered[i] = each
 		}
 
-		wg.Add(1)
-		jobs <- rowOrdered
+		batch = append(batch, rowOrdered)
+		if len(batch) >= batchSize {
+			wg.Add(1)
+			jobs <- batch
+			batch = make([][]interface{}, 0, batchSize)
+		}
 	}
+
+	if len(batch) > 0 {
+		wg.Add(1)
+		jobs <- batch
+	}
+
 	close(jobs)
 }
 
-func doTheJob(workerIndex, counter int, db *sql.DB, values []interface{}) {
+func doTheJob(workerIndex, counter int, db *sql.DB, values [][]interface{}) {
 	for {
 		var outerError error
 		func(outerError *error) {
@@ -100,18 +115,28 @@ func doTheJob(workerIndex, counter int, db *sql.DB, values []interface{}) {
 				}
 			}()
 
-			conn, err := db.Conn(context.Background())
-			query := fmt.Sprintf("INSERT INTO millions (%s) VALUES (%s)",
-				strings.Join(dataHeaders, ","),
-				strings.Join(generateQuestionsMark(len(dataHeaders)), ","),
-			)
-
-			_, err = conn.ExecContext(context.Background(), query, values...)
+			tx, err := db.Begin()
 			if err != nil {
 				log.Fatal(err.Error())
 			}
 
-			err = conn.Close()
+			query := fmt.Sprintf("INSERT INTO millions (%s) VALUES %s",
+				strings.Join(dataHeaders, ","),
+				strings.Join(generateQuestionsMarks(len(values), len(dataHeaders)), ","),
+			)
+
+			args := make([]interface{}, 0, len(values)*len(dataHeaders))
+			for _, row := range values {
+				args = append(args, row...)
+			}
+
+			_, err = tx.ExecContext(context.Background(), query, args...)
+			if err != nil {
+				tx.Rollback()
+				log.Fatal(err.Error())
+			}
+
+			err = tx.Commit()
 			if err != nil {
 				log.Fatal(err.Error())
 			}
@@ -121,15 +146,19 @@ func doTheJob(workerIndex, counter int, db *sql.DB, values []interface{}) {
 		}
 	}
 
-	if counter%100 == 0 {
-		log.Println("=> worker", workerIndex, "inserted", counter, "data")
+	if counter%10 == 0 {
+		log.Println("=> worker", workerIndex, "inserted", counter*batchSize, "rows")
 	}
 }
 
-func generateQuestionsMark(n int) []string {
-	s := make([]string, 0)
-	for i := 1; i <= n; i++ {
-		s = append(s, fmt.Sprintf("$%d", i))
+func generateQuestionsMarks(batchSize, colSize int) []string {
+	s := make([]string, batchSize)
+	for i := 0; i < batchSize; i++ {
+		placeholders := make([]string, colSize)
+		for j := 0; j < colSize; j++ {
+			placeholders[j] = fmt.Sprintf("$%d", i*colSize+j+1)
+		}
+		s[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ","))
 	}
 	return s
 }
@@ -141,6 +170,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	defer db.Close()
 
 	csvReader, csvFile, err := openCsvFile()
 	if err != nil {
@@ -148,7 +178,7 @@ func main() {
 	}
 	defer csvFile.Close()
 
-	jobs := make(chan []interface{}, 0)
+	jobs := make(chan [][]interface{}, totalWorker)
 	wg := new(sync.WaitGroup)
 
 	go dispatchWorkers(db, jobs, wg)
